@@ -100,7 +100,7 @@ echo -e "${YELLOW}  JWT Secret saved at: /opt/genieacs/genieacs.env${NC}"
 echo -e "${GREEN}============================================================${NC}"
 
 # === OPTION: Restore full parameters ===
-echo -ne "${YELLOW}Do you want to install full parameters from EGA CHANEL? (y/n): ${NC}"
+echo -ne "${YELLOW}Do you want to install full parameters from pravhjp? (y/n): ${NC}"
 read restore_confirm
 
 if [ "$restore_confirm" == "y" ]; then
@@ -134,13 +134,13 @@ if [ "$restore_confirm" == "y" ]; then
     echo -e "${GREEN}Downloading and installing full parameters...${NC}"
     cd /opt
     rm -rf /opt/genieacs-backup-full
-    git clone https://github.com/egachanel2626-sketch/genieacs-backup-full.git
+    git clone https://github.com/pravhjp/genieacs.git
 
     echo -e "${YELLOW}Stopping GenieACS services...${NC}"
     systemctl stop genieacs-cwmp genieacs-nbi genieacs-fs genieacs-ui
 
     echo -e "${YELLOW}Restoring GenieACS database...${NC}"
-    mongorestore --drop --db genieacs /opt/genieacs-backup-full/genieacs
+    mongorestore --drop --db genieacs /opt/genieacs-Para/genieacs
 
     # === Re-create admin user with new credentials after restore ===
     # WHY: After mongorestore, the users collection contains the backup's users
