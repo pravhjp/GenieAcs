@@ -133,14 +133,14 @@ if [ "$restore_confirm" == "y" ]; then
 
     echo -e "${GREEN}Downloading and installing full parameters...${NC}"
     cd /opt
-    rm -rf /opt/genieacs-backup-full
-    git clone https://github.com/pravhjp/genieacs.git
+    rm -rf /opt/GenieAcs
+    git clone https://github.com/pravhjp/GenieAcs.git
 
     echo -e "${YELLOW}Stopping GenieACS services...${NC}"
     systemctl stop genieacs-cwmp genieacs-nbi genieacs-fs genieacs-ui
 
     echo -e "${YELLOW}Restoring GenieACS database...${NC}"
-    mongorestore --drop --db genieacs /opt/genieacs-Para/genieacs
+    mongorestore --drop --db genieacs /opt/GenieAcs/Para
 
     # === Re-create admin user with new credentials after restore ===
     # WHY: After mongorestore, the users collection contains the backup's users
