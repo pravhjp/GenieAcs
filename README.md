@@ -1,6 +1,10 @@
 # GenieAcs
 GenieAcs Install on Ubuntu 22.04 LTS
 
+1.Put this in root : install-genieacs.sh
+2.chmod +x install-genieacs.sh
+3.bash install-genieacs.sh
+
 # GenieAcsProvision.js - Where and How to use It
 
 1. Open in a browser: http://YOUR_VPS_IP:3000
