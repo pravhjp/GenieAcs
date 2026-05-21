@@ -100,105 +100,29 @@ echo -e "${YELLOW}  JWT Secret saved at: /opt/genieacs/genieacs.env${NC}"
 echo -e "${GREEN}============================================================${NC}"
 
 # === OPTION: Restore full parameters ===
-echo -ne "${YELLOW}Do you want to install full parameters from pravhjp? (y/n): ${NC}"
+echo -ne "${YELLOW}Do you want to install the full parameters of pravhjp? (y/n): ${NC}"
 read restore_confirm
 
 if [ "$restore_confirm" == "y" ]; then
-
-    # === Ask for new admin username and password BEFORE restore ===
-    # WHY: mongorestore will overwrite the users collection with backup data
-    # (backup has its own username/password with hashed values).
-    # We collect new credentials here and re-insert them after restore,
-    # so the backup's users are completely replaced with the ones you set now.
-    echo -e "${GREEN}============================================================${NC}"
-    echo -e "${YELLOW}  Set your GenieACS admin login credentials${NC}"
-    echo -e "${YELLOW}  These will REPLACE the users from the backup file${NC}"
-    echo -e "${GREEN}============================================================${NC}"
-
-    echo -ne "${YELLOW}Enter new admin username: ${NC}"
-    read NEW_ADMIN_USER
-    while true; do
-        echo -ne "${YELLOW}Enter new admin password: ${NC}"
-        read -s NEW_ADMIN_PASS
-        echo
-        echo -ne "${YELLOW}Confirm admin password: ${NC}"
-        read -s NEW_ADMIN_PASS2
-        echo
-        if [ "$NEW_ADMIN_PASS" == "$NEW_ADMIN_PASS2" ]; then
-            break
-        else
-            echo -e "${RED}Passwords do not match. Try again.${NC}"
-        fi
-    done
-
-    echo -e "${GREEN}Downloading and installing full parameters...${NC}"
+    echo -e "${GREEN}? Download and install full parameters...${NC}"
     cd /opt
-    rm -rf /opt/GenieAcs
+    rm -rf /opt/genieacs-backup-full
     git clone https://github.com/pravhjp/GenieAcs.git
 
-    echo -e "${YELLOW}Stopping GenieACS services...${NC}"
-    systemctl stop genieacs-cwmp genieacs-nbi genieacs-fs genieacs-ui
+    echo -e "${YELLOW}?? Stopping the GenieACS service...${NC}"
+    systemctl stop genieacs-{cwmp,nbi,fs,ui}
 
-    echo -e "${YELLOW}Restoring GenieACS database...${NC}"
+    echo -e "${YELLOW}?? Restoring the GenieACS database...${NC}"
     mongorestore --drop --db genieacs /opt/GenieAcs/Para
 
-    # === Re-create admin user with new credentials after restore ===
-    # WHY: After mongorestore, the users collection contains the backup's users
-    # (alijayanet / admin with old hashed passwords). We drop that and insert
-    # a fresh admin account using GenieACS's own genieacs-cli tool so the
-    # password is properly hashed by GenieACS itself -- not by us.
-    echo -e "${YELLOW}Setting new admin credentials (replacing backup users)...${NC}"
-    # Drop backup users and insert new admin via GenieACS NBI API
-    # We use mongo shell to clear users first, then GenieACS CLI to create properly
-    mongosh genieacs --eval "db.users.drop()" 2>/dev/null || \
-    mongo genieacs --eval "db.users.drop()" 2>/dev/null || true
-
-    # Start NBI temporarily to use genieacs-cli for proper password hashing
-    systemctl start genieacs-nbi
-    sleep 3
-    genieacs-cli create-user --username "$NEW_ADMIN_USER" --password "$NEW_ADMIN_PASS" --roles admin 2>/dev/null || \
-    node -e "
-    const crypto = require('crypto');
-    const salt = crypto.randomBytes(64).toString('hex');
-    const hash = crypto.scryptSync('$NEW_ADMIN_PASS', salt, 64).toString('hex') +
-                 crypto.createHash('sha512').update('$NEW_ADMIN_PASS' + salt).digest('hex');
-    const { MongoClient } = require('mongodb');
-    const client = new MongoClient('mongodb://127.0.0.1/genieacs');
-    client.connect().then(() => {
-        return client.db().collection('users').insertOne({
-            _id: '$NEW_ADMIN_USER',
-            roles: 'admin',
-            password: hash,
-            salt: salt
-        });
-    }).then(() => { console.log('User created.'); client.close(); })
-    .catch(e => { console.error(e); client.close(); });
-    " 2>/dev/null || true
-
-    echo -e "${YELLOW}Starting GenieACS services...${NC}"
-    systemctl start genieacs-cwmp genieacs-nbi genieacs-fs genieacs-ui
-    sleep 3
+    echo -e "${YELLOW}?? Restarting the GenieACS service...${NC}"
+    systemctl start genieacs-{cwmp,nbi,fs,ui}
 
     echo -e "${GREEN}============================================================${NC}"
-    echo -e "${GREEN}  Full parameters restored successfully.${NC}"
-    echo -e "${GREEN}  Admin username : ${NEW_ADMIN_USER}${NC}"
-    echo -e "${GREEN}  Admin password : (as you set above)${NC}"
-    echo -e "${YELLOW}  Access UI at: http://$local_ip:3000${NC}"
+    echo -e "${GREEN}? Restore parameter full successfully installed.${NC}"
+    echo -e "${YELLOW}Access the UI on: http://$local_ip:3000${NC}"
     echo -e "${GREEN}============================================================${NC}"
-
 else
-    echo -e "${YELLOW}Parameter restore skipped.${NC}"
+    echo -e "${YELLOW}?? Restore parameters skipped.${NC}"
     echo -e "${GREEN}============================================================${NC}"
 fi
-
-# === Check status of all services ===
-echo -e "${GREEN}GenieACS service status:${NC}"
-for svc in cwmp nbi fs ui; do
-    STATUS=$(systemctl is-active genieacs-${svc} 2>/dev/null)
-    if [ "$STATUS" = "active" ]; then
-        echo -e "  genieacs-${svc}: ${GREEN}RUNNING${NC}"
-    else
-        echo -e "  genieacs-${svc}: ${RED}${STATUS}${NC}"
-    fi
-done
-echo -e "${GREEN}============================================================${NC}"
