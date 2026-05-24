@@ -18,3 +18,25 @@ GenieAcs Install on Ubuntu 22.04 LTS
 jsconst url = "http://YOUR_VPS_IP:7547";
 9. Press Save button - it's done ✅
 This provision will automatically set ACS URL, credentials and interval on every device's notification.
+
+# For port change
+1. Environment File
+
+File:
+
+/opt/genieacs/genieacs.env
+
+Add:
+
+GENIEACS_CWMP_PORT=7548
+GENIEACS_NBI_PORT=7558
+GENIEACS_FS_PORT=7568
+GENIEACS_UI_PORT=3001
+
+2. Restart Services
+systemctl restart genieacs-cwmp
+systemctl restart genieacs-nbi
+systemctl restart genieacs-fs
+systemctl restart genieacs-ui
+
+
